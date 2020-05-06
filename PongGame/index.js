@@ -65,40 +65,42 @@ class GameObject {
 class Paddle extends GameObject {
 
     static #PADDLE_MOVEMENET_RANGE = 400;
+    static PADDLE_HEIGHT = 200;
 
-    #yPosition;
+
+    yPosition;
 
     constructor(elementId, yPosition) {
         super(elementId);
-        this.#yPosition = yPosition;
+        this.yPosition = yPosition;
     }
 
     move(offset) {
         var underflow = this.isUnderflow(offset);
         var overflow = this.isOverflow(offset);
         if (underflow) {
-            this.#yPosition = 0;
+            this.yPosition = 0;
         } else if (overflow) {
-            this.#yPosition = Paddle.#PADDLE_MOVEMENET_RANGE;
+            this.yPosition = Paddle.#PADDLE_MOVEMENET_RANGE;
         }
 
         if (!(underflow || overflow)) {
-            this.#yPosition += offset;
+            this.yPosition += offset;
         }
 
         this.redraw();
     }
 
     isUnderflow(offset) {
-        return this.#yPosition + offset <= 0 && offset < 0;
+        return this.yPosition + offset <= 0 && offset < 0;
     }
 
     isOverflow(offset) {
-        return this.#yPosition + offset >= Paddle.#PADDLE_MOVEMENET_RANGE && offset > 0;
+        return this.yPosition + offset >= Paddle.#PADDLE_MOVEMENET_RANGE && offset > 0;
     }
 
     redraw() {
-        this.element.style.top = this.#yPosition + 'px';
+        this.element.style.top = this.yPosition + 'px';
         this.element.style.display = 'none';
         this.element.style.display = 'block';
     }
@@ -115,8 +117,31 @@ class Paddle extends GameObject {
             top + 200,
             isNaN(left) ? 1000 : 10);
     }
+}
 
+class PaddleAI extends Paddle {
 
+    static JITTER_THRESHOLD = 10
+
+    #ball;
+    #speed;
+
+    constructor(elementId, yPosition, ball, speed) {
+        super(elementId, yPosition);
+        this.#ball = ball;
+        this.#speed = speed;
+    }
+
+    draw() {
+        super.draw();
+
+        var ballPos = this.#ball.yPosition;
+        var paddlePos = this.yPosition + Paddle.PADDLE_HEIGHT / 2;
+        //disables jitter
+        if (Math.abs(paddlePos - ballPos) > PaddleAI.JITTER_THRESHOLD) {
+            this.move(paddlePos >= ballPos ? -this.#speed : this.#speed);
+        }
+    }
 }
 
 class PaddlePlayer extends Paddle {
@@ -125,9 +150,9 @@ class PaddlePlayer extends Paddle {
     static #ARROW_DOWN = 'ArrowDown';
     static #MOVE_SPEED = 12;
 
-    constructor(yPosition, elementId) {
-        super(yPosition, elementId);
-        super.move(-1);
+    constructor(elementId, yPosition) {
+        super(elementId, yPosition);
+        // super.move(-1);
         document.addEventListener('keydown', this.getOnButtonPressed(this));
     }
 
@@ -171,7 +196,7 @@ class Ball extends GameObject {
     #yDirection;
 
     #xPosition;
-    #yPosition;
+    yPosition;
 
     constructor(elementId, speed) {
         super(elementId);
@@ -182,30 +207,19 @@ class Ball extends GameObject {
         super.draw();
 
         this.#xPosition += (this.#xDirection * this.speed);
-        this.#yPosition += (this.#yDirection * this.speed);
+        this.yPosition += (this.#yDirection * this.speed);
 
-        if (this.#yPosition <= 0) {
+        if (this.yPosition <= 0) {
             this.#yDirection = -this.#yDirection;
-            this.#yPosition = 0;
-        } else if (this.#yPosition >= Ball.PLAY_FIELD_HEIGHT) {
+            this.yPosition = 0;
+        } else if (this.yPosition >= Ball.PLAY_FIELD_HEIGHT) {
             this.#yDirection = -this.#yDirection;
-            this.#yPosition = Ball.PLAY_FIELD_HEIGHT;
+            this.yPosition = Ball.PLAY_FIELD_HEIGHT;
         } else {
-            this.#yPosition += (this.#yDirection * this.speed);
+            this.yPosition += (this.#yDirection * this.speed);
         }
 
-        this.#xPosition += (this.#xDirection * this.speed);
-        if (this.#xPosition <= 0) {
-            // this.#xDirection = -this.#xDirection;
-            // this.#xPosition = 0;
-        } else if (this.#xPosition >= Ball.PLAY_FIELD_WIDTH) {
-            // this.#xDirection = -this.#xDirection;
-            // this.#xPosition = Ball.PLAY_FIELD_WIDTH;
-        } else {
-            // this.#xPosition += (this.#xDirection * this.speed);
-        }
-
-        this.element.style.top = this.#yPosition + 'px';
+        this.element.style.top = this.yPosition + 'px';
         this.element.style.left = this.#xPosition + 'px';
         this.element.style.display = 'none';
         this.element.style.display = 'block';
@@ -213,7 +227,7 @@ class Ball extends GameObject {
 
     throw() {
         this.#xPosition = Ball.PLAY_FIELD_WIDTH / 2;
-        this.#yPosition = Ball.PLAY_FIELD_HEIGHT / 2;
+        this.yPosition = Ball.PLAY_FIELD_HEIGHT / 2;
 
         var angle = this.generateAngle();
         const [cos, sin] = getCosSin(angle);
@@ -223,7 +237,7 @@ class Ball extends GameObject {
             this.#xDirection = -this.#xDirection;
         }
 
-        this.element.style.top = this.#yPosition + 'px';
+        this.element.style.top = this.yPosition + 'px';
         this.element.style.left = this.#xPosition + 'px';
         this.element.style.display = 'none';
         this.element.style.display = 'block';
@@ -242,9 +256,6 @@ class Ball extends GameObject {
     }
 
     handleCollision(paddle, intersectionPosition) {
-        console.log('player handled');
-        this.#xDirection = -this.#xDirection;
-
         for (var section of Ball.CollisionSections) {
             if (section.range[0] < intersectionPosition && intersectionPosition < section.range[1]) {
                 const [cos, sin] = section.calculate();
@@ -260,15 +271,16 @@ class Ball extends GameObject {
 }
 
 function onPageLoaded() {
-    var ball = new Ball('ball', 3);
+    var ball = new Ball('ball', 4);
     ball.throw();
 
     var player = new PaddlePlayer('paddlePlayer', 0);
-    var ai = new PaddlePlayer('paddleAI', 0);
+    var ai = new PaddleAI('paddleAI', 0, ball, 4);
 
     function gameLoop() {
         ball.draw();
         player.draw();
+        ai.draw();
 
         isCollision(ball, player);
         isCollision(ball, ai);
