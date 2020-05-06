@@ -7,6 +7,15 @@ function isCollision(ball, objTwo) {
     }
 }
 
+function getCosSin(angleDeg) {
+    var angleRad = degToRad(angleDeg);
+    return [Math.cos(angleRad), Math.sin(angleRad)];
+}
+
+function degToRad(deg) {
+    return Math.PI * deg / 180;
+}
+
 class Rectangle {
 
     top;
@@ -143,13 +152,18 @@ const CollisionType = {
     EDGE: 2
 }
 
+const CollisionAngle = {
+    CENTER: 0,
+    MIDDLE: 30,
+    EDGE: 45
+}
+
 class Ball extends GameObject {
 
     static PLAY_FIELD_HEIGHT = 600;
     static PLAY_FIELD_WIDTH = 1000;
 
-    static #ANGLE_RANGE_MIN = 35;
-    static #ANGLE_RANGE_MAX = 145;
+    static #ANGLE_RANGE = 70;
 
     static CollisionSections = [
         { range: [0.0, 0.199], type: CollisionType.EDGE },
@@ -208,10 +222,9 @@ class Ball extends GameObject {
         this.#yPosition = Ball.PLAY_FIELD_HEIGHT / 2;
 
         var angle = this.generateAngle();
-        var angleRad = Math.PI * angle / 180;
-
-        this.#yDirection = Math.cos(angleRad);
-        this.#xDirection = Math.sin(angleRad);
+        const [cos, sin] = getCosSin(angle);
+        this.#xDirection = cos;
+        this.#yDirection = sin;
         if (Math.random() > 0.5) {
             this.#xDirection = -this.#xDirection;
         }
@@ -223,7 +236,7 @@ class Ball extends GameObject {
     }
 
     generateAngle() {
-        return (Math.random() * (Ball.#ANGLE_RANGE_MAX - Ball.#ANGLE_RANGE_MIN)) + Ball.#ANGLE_RANGE_MIN;
+        return (Math.random() * Ball.#ANGLE_RANGE * 2) - Ball.#ANGLE_RANGE;
     }
 
     getBounds() {
