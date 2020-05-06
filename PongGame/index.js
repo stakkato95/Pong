@@ -1,5 +1,8 @@
 'use strict';
 
+////////////////////////////////////////////////////
+// Helper functions
+////////////////////////////////////////////////////
 function isCollision(ball, objTwo) {
     var intersectionPosition = ball.getBounds().intersects(objTwo.getBounds());
     if (intersectionPosition) {
@@ -15,6 +18,71 @@ function getCosSin(angleDeg) {
 function degToRad(deg) {
     return Math.PI * deg / 180;
 }
+
+////////////////////////////////////////////////////
+// Helper classes
+////////////////////////////////////////////////////
+
+class StateMachine {
+
+    static #NEW_GAME_TIME_OUT = 2000;
+
+    static State = {
+        PLAYING: 0,
+        GAME_OVER: 1
+    };
+
+    static Event = {
+        WIN_AI: 0,
+        WIN_USER: 1,
+        START_NEW_GAME: 2
+    };
+
+    static #state = State.GAME_OVER;
+    static #subscriptions = {
+        [StateMachine.Event.WIN_AI]: [],
+        [StateMachine.Event.WIN_USER]: [],
+        [StateMachine.Event.WIN_START_NEW_GAME]: []
+    };
+
+    static postEvent(event) {
+        processEvent(event)
+    }
+
+    static processEvent(event) {
+        switch (StateMachine.#state) {
+            case StateMachine.State.PLAYING:
+                if (event === StateMachine.Event.WIN_AI) {
+                    console.log('ai win');
+                    StateMachine.#state = StateMachine.State.GAME_OVER;
+                    setTimeout(() => StateMachine.postEvent(StateMachine.Event.START_NEW_GAME), StateMachine.#NEW_GAME_TIME_OUT);
+                } else if (event === StateMachine.Event.WIN_USER) {
+                    console.log('user win');
+                    StateMachine.#state = StateMachine.State.GAME_OVER;
+                    setTimeout(() => StateMachine.postEvent(StateMachine.Event.START_NEW_GAME), StateMachine.#NEW_GAME_TIME_OUT);
+                }
+                break;
+            case StateMachine.State.GAME_OVER:
+                if (event === StateMachine.Event.START_NEW_GAME) {
+                    console.log('starting new game');
+                    StateMachine.#state = StateMachine.State.PLAYING;
+                }
+                break;
+        }
+
+        for (var subscriber of StateMachine.#subscriptions[event]) {
+            subscriber.onEvent(event);
+        }
+    }
+
+    static subscribe(event, subscriber) {
+        StateMachine.#subscriptions[event].push(subscriber);
+    }
+}
+
+////////////////////////////////////////////////////
+// Base classes
+////////////////////////////////////////////////////
 
 class Rectangle {
 
@@ -67,7 +135,6 @@ class Paddle extends GameObject {
     static #PADDLE_MOVEMENET_RANGE = 400;
     static PADDLE_HEIGHT = 200;
 
-
     yPosition;
 
     constructor(elementId, yPosition) {
@@ -119,6 +186,10 @@ class Paddle extends GameObject {
     }
 }
 
+////////////////////////////////////////////////////
+// Game classes
+////////////////////////////////////////////////////
+
 class PaddleAI extends Paddle {
 
     static JITTER_THRESHOLD = 10
@@ -152,7 +223,6 @@ class PaddlePlayer extends Paddle {
 
     constructor(elementId, yPosition) {
         super(elementId, yPosition);
-        // super.move(-1);
         document.addEventListener('keydown', this.getOnButtonPressed(this));
     }
 
@@ -171,12 +241,6 @@ class PaddlePlayer extends Paddle {
     }
 }
 
-const CollisionAngle = {
-    CENTER: 0,
-    MIDDLE: 30,
-    EDGE: 45
-}
-
 class Ball extends GameObject {
 
     static PLAY_FIELD_HEIGHT = 600;
@@ -184,13 +248,19 @@ class Ball extends GameObject {
 
     static #ANGLE_RANGE = 70;
 
+    static CollisionAngle = {
+        CENTER: 0,
+        MIDDLE: 30,
+        EDGE: 45
+    };
+
     static CollisionSections = [
-        { range: [0.0, 0.199], calculate: () => getCosSin(-CollisionAngle.EDGE) },
-        { range: [0.2, 0.399], calculate: () => getCosSin(-CollisionAngle.MIDDLE) },
-        { range: [0.4, 0.599], calculate: () => getCosSin(CollisionAngle.CENTER) },
-        { range: [0.6, 0.799], calculate: () => getCosSin(CollisionAngle.MIDDLE) },
-        { range: [0.8, 1.000], calculate: () => getCosSin(CollisionAngle.EDGE) },
-    ]
+        { range: [0.0, 0.199], calculate: () => getCosSin(-Ball.CollisionAngle.EDGE) },
+        { range: [0.2, 0.399], calculate: () => getCosSin(-Ball.CollisionAngle.MIDDLE) },
+        { range: [0.4, 0.599], calculate: () => getCosSin(Ball.CollisionAngle.CENTER) },
+        { range: [0.6, 0.799], calculate: () => getCosSin(Ball.CollisionAngle.MIDDLE) },
+        { range: [0.8, 1.000], calculate: () => getCosSin(Ball.CollisionAngle.EDGE) },
+    ];
 
     #xDirection;
     #yDirection;
@@ -269,6 +339,10 @@ class Ball extends GameObject {
         }
     }
 }
+
+////////////////////////////////////////////////////
+// Game loop
+////////////////////////////////////////////////////
 
 function onPageLoaded() {
     var ball = new Ball('ball', 4);
