@@ -242,18 +242,18 @@ class Ball extends GameObject {
     }
 
     handleCollision(paddle, intersectionPosition) {
-        if (paddle.getId() === 'paddlePlayer') {
-            console.log('player handled');
-            this.#xDirection = -this.#xDirection;
+        console.log('player handled');
+        this.#xDirection = -this.#xDirection;
 
-            for (var section of Ball.CollisionSections) {
-                if (section.range[0] < intersectionPosition && intersectionPosition < section.range[1]) {
-                    const [cos, sin] = section.calculate();
-                    this.#xDirection = cos;
-                    this.#yDirection = sin;
-                }
+        for (var section of Ball.CollisionSections) {
+            if (section.range[0] < intersectionPosition && intersectionPosition < section.range[1]) {
+                const [cos, sin] = section.calculate();
+                this.#xDirection = cos;
+                this.#yDirection = sin;
             }
-        } else {
+        }
+
+        if (paddle.getId() === 'paddleAI') {
             this.#xDirection = -this.#xDirection;
         }
     }
