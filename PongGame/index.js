@@ -146,12 +146,6 @@ class PaddlePlayer extends Paddle {
     }
 }
 
-const CollisionType = {
-    CENTER: 0,
-    MIDDLE: 1,
-    EDGE: 2
-}
-
 const CollisionAngle = {
     CENTER: 0,
     MIDDLE: 30,
@@ -166,11 +160,11 @@ class Ball extends GameObject {
     static #ANGLE_RANGE = 70;
 
     static CollisionSections = [
-        { range: [0.0, 0.199], type: CollisionType.EDGE },
-        { range: [0.2, 0.399], type: CollisionType.MIDDLE },
-        { range: [0.4, 0.599], type: CollisionType.CENTER },
-        { range: [0.6, 0.799], type: CollisionType.MIDDLE },
-        { range: [0.8, 1.000], type: CollisionType.EDGE },
+        { range: [0.0, 0.199], calculate: () => getCosSin(-CollisionAngle.EDGE) },
+        { range: [0.2, 0.399], calculate: () => getCosSin(-CollisionAngle.MIDDLE) },
+        { range: [0.4, 0.599], calculate: () => getCosSin(CollisionAngle.CENTER) },
+        { range: [0.6, 0.799], calculate: () => getCosSin(CollisionAngle.MIDDLE) },
+        { range: [0.8, 1.000], calculate: () => getCosSin(CollisionAngle.EDGE) },
     ]
 
     #xDirection;
@@ -254,7 +248,9 @@ class Ball extends GameObject {
 
             for (var section of Ball.CollisionSections) {
                 if (section.range[0] < intersectionPosition && intersectionPosition < section.range[1]) {
-                    console.log(section.type);
+                    const [cos, sin] = section.calculate();
+                    this.#xDirection = cos;
+                    this.#yDirection = sin;
                 }
             }
         } else {
