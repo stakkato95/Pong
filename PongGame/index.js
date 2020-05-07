@@ -1,6 +1,13 @@
 'use strict';
 
 ////////////////////////////////////////////////////
+// Constants
+////////////////////////////////////////////////////
+
+const PLAY_FIELD_HEIGHT = 600;
+const PLAY_FIELD_WIDTH = 1000;
+
+////////////////////////////////////////////////////
 // Helper functions
 ////////////////////////////////////////////////////
 function isCollision(ball, objTwo) {
@@ -237,9 +244,9 @@ class Paddle extends GameObject {
 
         return new Rectangle(
             top,
-            isNaN(left) ? 990 : 0,
-            top + 200,
-            isNaN(left) ? 1000 : 10);
+            isNaN(left) ? PLAY_FIELD_WIDTH - Ball.BALL_SIZE : 0,
+            top + Paddle.PADDLE_HEIGHT,
+            isNaN(left) ? PLAY_FIELD_WIDTH : Ball.BALL_SIZE);
     }
 
     onEvent(event) {
@@ -320,10 +327,7 @@ class Ball extends GameObject {
 
     static BALL_SIZE = 10;
 
-    static PLAY_FIELD_HEIGHT = 600;
-    static PLAY_FIELD_WIDTH = 1000;
-
-    static #ANGLE_RANGE = 70;
+    static #START_ANGLE_RANGE = 70;
 
     static CollisionAngle = {
         CENTER: 0,
@@ -363,9 +367,9 @@ class Ball extends GameObject {
         if (this.yPosition < 0) {
             this.#yDirection = -this.#yDirection;
             this.yPosition = 0;
-        } else if (this.yPosition > Ball.PLAY_FIELD_HEIGHT) {
+        } else if (this.yPosition > PLAY_FIELD_HEIGHT) {
             this.#yDirection = -this.#yDirection;
-            this.yPosition = Ball.PLAY_FIELD_HEIGHT;
+            this.yPosition = PLAY_FIELD_HEIGHT;
         } else {
             this.yPosition += (this.#yDirection * this.speed);
         }
@@ -383,14 +387,14 @@ class Ball extends GameObject {
 
         if (this.#xPosition < 0) {
             StateMachine.postEvent(StateMachine.Event.WIN_AI);
-        } else if (this.#xPosition > Ball.PLAY_FIELD_WIDTH) {
+        } else if (this.#xPosition > PLAY_FIELD_WIDTH) {
             StateMachine.postEvent(StateMachine.Event.WIN_USER);
         }
     }
 
     throw() {
-        this.#xPosition = Ball.PLAY_FIELD_WIDTH / 2;
-        this.yPosition = Ball.PLAY_FIELD_HEIGHT / 2;
+        this.#xPosition = PLAY_FIELD_WIDTH / 2;
+        this.yPosition = PLAY_FIELD_HEIGHT / 2;
 
         var angle = this.generateAngle();
         const [cos, sin] = getCosSin(angle);
@@ -407,7 +411,7 @@ class Ball extends GameObject {
     }
 
     generateAngle() {
-        return (Math.random() * Ball.#ANGLE_RANGE * 2) - Ball.#ANGLE_RANGE;
+        return (Math.random() * Ball.#START_ANGLE_RANGE * 2) - Ball.#START_ANGLE_RANGE;
     }
 
     getBounds() {
@@ -415,7 +419,7 @@ class Ball extends GameObject {
         var top = parseInt(this.element.style.top);
         var left = parseInt(this.element.style.left);
 
-        return new Rectangle(top, left, top + 10, left + 10);
+        return new Rectangle(top, left, top + Ball.BALL_SIZE, left + Ball.BALL_SIZE);
     }
 
     handleCollision(paddle, intersectionPosition) {
@@ -446,9 +450,12 @@ class Ball extends GameObject {
 ////////////////////////////////////////////////////
 
 function onPageLoaded() {
-    var ball = new Ball('ball', 8);
+    const ballSpeed = 8;
+    const aiSpeed = 2.5;
+
+    var ball = new Ball('ball', ballSpeed);
     var player = new PaddlePlayer('paddlePlayer');
-    var ai = new PaddleAI('paddleAI', ball, 4);
+    var ai = new PaddleAI('paddleAI', ball, aiSpeed);
     var scoreBoard = new ScoreBoard('scoreBoard');
 
     StateMachine.postEvent(StateMachine.Event.START_NEW_GAME);
