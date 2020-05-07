@@ -53,18 +53,15 @@ class StateMachine {
         switch (StateMachine.#state) {
             case StateMachine.State.PLAYING:
                 if (event === StateMachine.Event.WIN_AI) {
-                    console.log('ai win');
                     StateMachine.#state = StateMachine.State.GAME_OVER;
-                    setTimeout(() => StateMachine.postEvent(StateMachine.Event.START_NEW_GAME), StateMachine.#NEW_GAME_TIME_OUT);
+                    StateMachine.startNewGameTimeout();
                 } else if (event === StateMachine.Event.WIN_USER) {
-                    console.log('user win');
                     StateMachine.#state = StateMachine.State.GAME_OVER;
-                    setTimeout(() => StateMachine.postEvent(StateMachine.Event.START_NEW_GAME), StateMachine.#NEW_GAME_TIME_OUT);
+                    StateMachine.startNewGameTimeout();
                 }
                 break;
             case StateMachine.State.GAME_OVER:
                 if (event === StateMachine.Event.START_NEW_GAME) {
-                    console.log('starting new game');
                     StateMachine.#state = StateMachine.State.PLAYING;
                 }
                 break;
@@ -75,8 +72,36 @@ class StateMachine {
         }
     }
 
+    static startNewGameTimeout() {
+        setTimeout(() => StateMachine.postEvent(StateMachine.Event.START_NEW_GAME), StateMachine.#NEW_GAME_TIME_OUT);
+    }
+
     static subscribe(event, subscriber) {
         StateMachine.#subscriptions[event].push(subscriber);
+    }
+}
+
+class ScoreBoard {
+
+    #text;
+    #userScore = 0;
+    #aiScore = 0;
+    
+    constructor(elementId) {
+        this.#text = document.getElementById(elementId);
+
+        StateMachine.subscribe(StateMachine.Event.WIN_USER, this);
+        StateMachine.subscribe(StateMachine.Event.WIN_AI, this);
+    }
+
+    onEvent(event) {
+        if (event === StateMachine.Event.WIN_USER) {
+            this.#userScore++;
+        } else if (event === StateMachine.Event.WIN_AI) {
+            this.#aiScore++;
+        }
+
+        this.#text.innerHTML = `${this.#userScore} : ${this.#aiScore}`
     }
 }
 
@@ -126,7 +151,7 @@ class GameObject {
     constructor(elementId) {
         this.element = document.getElementById(elementId);
 
-        this.state = GameObject.State.GAME_OVER;
+        this.state = GameObject.State.PLAYING;
 
         StateMachine.subscribe(StateMachine.Event.START_NEW_GAME, this);
         StateMachine.subscribe(StateMachine.Event.WIN_USER, this);
@@ -293,6 +318,8 @@ class PaddlePlayer extends Paddle {
 
 class Ball extends GameObject {
 
+    static BALL_SIZE = 10;
+
     static PLAY_FIELD_HEIGHT = 600;
     static PLAY_FIELD_WIDTH = 1000;
 
@@ -350,6 +377,10 @@ class Ball extends GameObject {
     }
 
     checkForGameOver() {
+        if (this.state === GameObject.State.GAME_OVER) {
+            return;
+        }
+
         if (this.#xPosition < 0) {
             StateMachine.postEvent(StateMachine.Event.WIN_AI);
         } else if (this.#xPosition > Ball.PLAY_FIELD_WIDTH) {
@@ -415,11 +446,10 @@ class Ball extends GameObject {
 ////////////////////////////////////////////////////
 
 function onPageLoaded() {
-    var ball = new Ball('ball', 4);
-    ball.throw();
-
+    var ball = new Ball('ball', 8);
     var player = new PaddlePlayer('paddlePlayer');
     var ai = new PaddleAI('paddleAI', ball, 4);
+    var scoreBoard = new ScoreBoard('scoreBoard');
 
     StateMachine.postEvent(StateMachine.Event.START_NEW_GAME);
 
