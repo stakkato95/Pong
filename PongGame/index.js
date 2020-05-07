@@ -114,11 +114,19 @@ class Rectangle {
 }
 
 class GameObject {
+    
+    static State = {
+        PLAYING: 0,
+        GAME_OVER: 1
+    };
 
     element;
+    state;
 
     constructor(elementId) {
         this.element = document.getElementById(elementId);
+
+        this.state = GameObject.State.GAME_OVER;
 
         StateMachine.subscribe(StateMachine.Event.START_NEW_GAME, this);
         StateMachine.subscribe(StateMachine.Event.WIN_USER, this);
@@ -133,7 +141,20 @@ class GameObject {
 
     getBounds() { }
 
-    onEvent(event) { }
+    onEvent(event) {
+        switch (this.state) {
+            case GameObject.State.GAME_OVER:
+                if (event === StateMachine.Event.START_NEW_GAME) {
+                    this.state = GameObject.State.PLAYING;
+                }
+                break;
+            case GameObject.State.PLAYING:
+                if (event === StateMachine.Event.WIN_AI || event === StateMachine.Event.WIN_USER) {
+                    this.state = GameObject.State.GAME_OVER;
+                }
+                break;
+        }
+    }
 }
 
 class Paddle extends GameObject {
@@ -272,34 +293,22 @@ class Ball extends GameObject {
         { range: [0.8, 1.000], calculate: () => getCosSin(Ball.CollisionAngle.EDGE) },
     ];
 
-    //TODO
-    //TODO
-    //TODO
-    //move to base class!!!
-    static State = {
-        PLAYING: 0,
-        GAME_OVER: 1
-    };
-
     #xDirection;
     #yDirection;
 
     #xPosition;
     yPosition;
 
-    #state;
-
     constructor(elementId, speed) {
         super(elementId);
         this.speed = speed;
-        this.#state = Ball.State.GAME_OVER;
     }
 
     draw() {
         super.draw();
         this.checkForGameOver();
 
-        if (this.#state === Ball.State.GAME_OVER) {
+        if (this.state === GameObject.State.GAME_OVER) {
             return;
         }
 
@@ -376,18 +385,8 @@ class Ball extends GameObject {
     onEvent(event) {
         super.onEvent(event);
 
-        switch (this.#state) {
-            case Ball.State.GAME_OVER:
-                if (event === StateMachine.Event.START_NEW_GAME) {
-                    this.#state = Ball.State.PLAYING;
-                    this.throw();
-                }
-                break;
-            case Ball.State.PLAYING:
-                if (event === StateMachine.Event.WIN_AI || event === StateMachine.Event.WIN_USER) {
-                    this.#state = Ball.State.GAME_OVER;
-                }
-                break;
+        if (event === StateMachine.Event.START_NEW_GAME) {
+            this.throw();
         }
     }
 }
