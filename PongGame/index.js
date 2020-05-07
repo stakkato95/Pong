@@ -164,9 +164,9 @@ class Paddle extends GameObject {
 
     yPosition;
 
-    constructor(elementId, yPosition) {
+    constructor(elementId) {
         super(elementId);
-        this.yPosition = yPosition;
+        this.moveToStartPosition();
     }
 
     move(offset) {
@@ -182,6 +182,11 @@ class Paddle extends GameObject {
             this.yPosition += offset;
         }
 
+        this.redraw();
+    }
+
+    moveToStartPosition() {
+        this.yPosition = 200;
         this.redraw();
     }
 
@@ -211,6 +216,13 @@ class Paddle extends GameObject {
             top + 200,
             isNaN(left) ? 1000 : 10);
     }
+
+    onEvent(event) {
+        super.onEvent(event);
+        if (event === StateMachine.Event.START_NEW_GAME) {
+            this.moveToStartPosition();
+        }
+    }
 }
 
 ////////////////////////////////////////////////////
@@ -224,8 +236,8 @@ class PaddleAI extends Paddle {
     #ball;
     #speed;
 
-    constructor(elementId, yPosition, ball, speed) {
-        super(elementId, yPosition);
+    constructor(elementId, ball, speed) {
+        super(elementId);
         this.#ball = ball;
         this.#speed = speed;
     }
@@ -248,13 +260,19 @@ class PaddlePlayer extends Paddle {
     static #ARROW_DOWN = 'ArrowDown';
     static #MOVE_SPEED = 12;
 
-    constructor(elementId, yPosition) {
-        super(elementId, yPosition);
+    movementAllowed = false;
+
+    constructor(elementId) {
+        super(elementId);
         document.addEventListener('keydown', this.getOnButtonPressed(this));
     }
 
     getOnButtonPressed(_this) {
         return function (e) {
+            if (!_this.movementAllowed) {
+                return;
+            }
+
             if (e.key === PaddlePlayer.#ARROW_UP) {
                 _this.move(-PaddlePlayer.#MOVE_SPEED);
             } else if (e.key === PaddlePlayer.#ARROW_DOWN) {
@@ -263,12 +281,13 @@ class PaddlePlayer extends Paddle {
         };
     }
 
-    move(offset) {
-        super.move(offset);
-    }
-
     onEvent(event) {
-
+        super.onEvent(event);
+        if (event === StateMachine.Event.WIN_USER || event === StateMachine.Event.WIN_AI) {
+            this.movementAllowed = false;
+        } else if (event === StateMachine.Event.START_NEW_GAME) {
+            this.movementAllowed = true;
+        }
     }
 }
 
@@ -399,8 +418,8 @@ function onPageLoaded() {
     var ball = new Ball('ball', 4);
     ball.throw();
 
-    var player = new PaddlePlayer('paddlePlayer', 0);
-    var ai = new PaddleAI('paddleAI', 0, ball, 4);
+    var player = new PaddlePlayer('paddlePlayer');
+    var ai = new PaddleAI('paddleAI', ball, 4);
 
     StateMachine.postEvent(StateMachine.Event.START_NEW_GAME);
 
