@@ -119,6 +119,10 @@ class GameObject {
 
     constructor(elementId) {
         this.element = document.getElementById(elementId);
+
+        StateMachine.subscribe(StateMachine.Event.START_NEW_GAME, this);
+        StateMachine.subscribe(StateMachine.Event.WIN_USER, this);
+        StateMachine.subscribe(StateMachine.Event.WIN_AI, this);
     }
 
     getId() {
@@ -129,7 +133,7 @@ class GameObject {
 
     getBounds() { }
 
-    onEvent() { }
+    onEvent(event) { }
 }
 
 class Paddle extends GameObject {
@@ -241,6 +245,10 @@ class PaddlePlayer extends Paddle {
     move(offset) {
         super.move(offset);
     }
+
+    onEvent(event) {
+
+    }
 }
 
 class Ball extends GameObject {
@@ -264,6 +272,10 @@ class Ball extends GameObject {
         { range: [0.8, 1.000], calculate: () => getCosSin(Ball.CollisionAngle.EDGE) },
     ];
 
+    //TODO
+    //TODO
+    //TODO
+    //move to base class!!!
     static State = {
         PLAYING: 0,
         GAME_OVER: 1
@@ -281,10 +293,6 @@ class Ball extends GameObject {
         super(elementId);
         this.speed = speed;
         this.#state = Ball.State.GAME_OVER;
-
-        StateMachine.subscribe(StateMachine.Event.START_NEW_GAME, this);
-        StateMachine.subscribe(StateMachine.Event.WIN_USER, this);
-        StateMachine.subscribe(StateMachine.Event.WIN_AI, this);
     }
 
     draw() {
@@ -366,9 +374,8 @@ class Ball extends GameObject {
     }
 
     onEvent(event) {
-        super.onEvent();
+        super.onEvent(event);
 
-        console.log('onEvent', this.#state)
         switch (this.#state) {
             case Ball.State.GAME_OVER:
                 if (event === StateMachine.Event.START_NEW_GAME) {
