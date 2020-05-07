@@ -38,15 +38,15 @@ class StateMachine {
         START_NEW_GAME: 2
     };
 
-    static #state = State.GAME_OVER;
+    static #state = StateMachine.State.GAME_OVER;
     static #subscriptions = {
         [StateMachine.Event.WIN_AI]: [],
         [StateMachine.Event.WIN_USER]: [],
-        [StateMachine.Event.WIN_START_NEW_GAME]: []
+        [StateMachine.Event.START_NEW_GAME]: []
     };
 
     static postEvent(event) {
-        processEvent(event)
+        StateMachine.processEvent(event)
     }
 
     static processEvent(event) {
@@ -128,6 +128,8 @@ class GameObject {
     draw() { }
 
     getBounds() { }
+
+    onEvent() { }
 }
 
 class Paddle extends GameObject {
@@ -262,27 +264,43 @@ class Ball extends GameObject {
         { range: [0.8, 1.000], calculate: () => getCosSin(Ball.CollisionAngle.EDGE) },
     ];
 
+    static State = {
+        PLAYING: 0,
+        GAME_OVER: 1
+    };
+
     #xDirection;
     #yDirection;
 
     #xPosition;
     yPosition;
 
+    #state;
+
     constructor(elementId, speed) {
         super(elementId);
         this.speed = speed;
+        this.#state = Ball.State.GAME_OVER;
+
+        StateMachine.subscribe(StateMachine.Event.START_NEW_GAME, this);
+        StateMachine.subscribe(StateMachine.Event.WIN_USER, this);
+        StateMachine.subscribe(StateMachine.Event.WIN_AI, this);
     }
 
     draw() {
         super.draw();
+        this.checkForGameOver();
+
+        if (this.#state === Ball.State.GAME_OVER) {
+            return;
+        }
 
         this.#xPosition += (this.#xDirection * this.speed);
-        this.yPosition += (this.#yDirection * this.speed);
 
-        if (this.yPosition <= 0) {
+        if (this.yPosition < 0) {
             this.#yDirection = -this.#yDirection;
             this.yPosition = 0;
-        } else if (this.yPosition >= Ball.PLAY_FIELD_HEIGHT) {
+        } else if (this.yPosition > Ball.PLAY_FIELD_HEIGHT) {
             this.#yDirection = -this.#yDirection;
             this.yPosition = Ball.PLAY_FIELD_HEIGHT;
         } else {
@@ -293,6 +311,14 @@ class Ball extends GameObject {
         this.element.style.left = this.#xPosition + 'px';
         this.element.style.display = 'none';
         this.element.style.display = 'block';
+    }
+
+    checkForGameOver() {
+        if (this.#xPosition < 0) {
+            StateMachine.postEvent(StateMachine.Event.WIN_AI);
+        } else if (this.#xPosition > Ball.PLAY_FIELD_WIDTH) {
+            StateMachine.postEvent(StateMachine.Event.WIN_USER);
+        }
     }
 
     throw() {
@@ -338,6 +364,25 @@ class Ball extends GameObject {
             this.#xDirection = -this.#xDirection;
         }
     }
+
+    onEvent(event) {
+        super.onEvent();
+
+        console.log('onEvent', this.#state)
+        switch (this.#state) {
+            case Ball.State.GAME_OVER:
+                if (event === StateMachine.Event.START_NEW_GAME) {
+                    this.#state = Ball.State.PLAYING;
+                    this.throw();
+                }
+                break;
+            case Ball.State.PLAYING:
+                if (event === StateMachine.Event.WIN_AI || event === StateMachine.Event.WIN_USER) {
+                    this.#state = Ball.State.GAME_OVER;
+                }
+                break;
+        }
+    }
 }
 
 ////////////////////////////////////////////////////
@@ -351,6 +396,8 @@ function onPageLoaded() {
     var player = new PaddlePlayer('paddlePlayer', 0);
     var ai = new PaddleAI('paddleAI', 0, ball, 4);
 
+    StateMachine.postEvent(StateMachine.Event.START_NEW_GAME);
+
     function gameLoop() {
         ball.draw();
         player.draw();
@@ -359,7 +406,6 @@ function onPageLoaded() {
         isCollision(ball, player);
         isCollision(ball, ai);
     }
-
     var fps = 60;
     var updateRate = 1000 / fps;
     setInterval(gameLoop, updateRate);
