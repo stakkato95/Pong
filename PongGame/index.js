@@ -231,6 +231,7 @@ class Paddle extends GameObject {
     }
 
     redraw() {
+        //???
         this.element.style.top = this.yPosition + 'px';
         this.element.style.display = 'none';
         this.element.style.display = 'block';
@@ -296,21 +297,20 @@ class PaddlePlayer extends Paddle {
 
     constructor(elementId) {
         super(elementId);
-        document.addEventListener('keydown', this.getOnButtonPressed(this));
+        //???
+        document.addEventListener('keydown', this.getOnButtonPressed.bind(this));
     }
 
-    getOnButtonPressed(_this) {
-        return function (e) {
-            if (!_this.movementAllowed) {
-                return;
-            }
+    getOnButtonPressed(e) {
+        if (!this.movementAllowed) {
+            return;
+        }
 
-            if (e.key === PaddlePlayer.#ARROW_UP) {
-                _this.move(-PaddlePlayer.#MOVE_SPEED);
-            } else if (e.key === PaddlePlayer.#ARROW_DOWN) {
-                _this.move(PaddlePlayer.#MOVE_SPEED);
-            }
-        };
+        if (e.key === PaddlePlayer.#ARROW_UP) {
+            this.move(-PaddlePlayer.#MOVE_SPEED);
+        } else if (e.key === PaddlePlayer.#ARROW_DOWN) {
+            this.move(PaddlePlayer.#MOVE_SPEED);
+        }
     }
 
     onEvent(event) {
